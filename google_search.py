@@ -2,8 +2,9 @@ from typing import List
 from cat.mad_hatter.decorators import hook, plugin
 from cat.log import log
 from pydantic import BaseModel, Field
-from googlesearch import search
 import json
+import requests
+
 
 
 class Filters(BaseModel):
@@ -32,16 +33,33 @@ def agent_fast_reply(fast_reply, cat):
         return fast_reply
 
     message = cat.working_memory["user_message_json"]["text"]
+    api_key = "66a8c1fa0fe5e03eb4bea93d"
+    service_url = "https://api.scrapingdog.com/google/"
+
     search_query = ""
     for url in search_urls:
         search_query += f"site:{url} OR " if url != search_urls[-1] else f"site:{url}"
+
+    params = {
+        "api_key": api_key,
+        "query": f"{message} {search_query}",
+        "results": 5,
+        "country": 'it',
+        "page": 0
+    }
+
     search_results = []
-    for result in search(f"{message} {search_query}", advanced=True, lang=language, num_results=4):
-        search_results.append({
-            "href": result.url,
-            "title": result.title,
-            "body": result.description,
-        })
+    response = requests.get(service_url, params=params)
+    if response.status_code == 200:
+        data = response.json()
+        for result in data["organic_data"]:
+            search_results.append({
+                    "href": result["link"],
+                    "title": result["title"],
+                    "body": result["snippet"],
+                })
+    else:
+        log.error(f"Error in Google Search API: {response})")
 
     fast_reply["output"] = json.dumps(search_results)
     return fast_reply
