@@ -2,8 +2,17 @@ from typing import List
 from cat.mad_hatter.decorators import hook, plugin
 from cat.log import log
 from pydantic import BaseModel, Field
-from googlesearch import search
 import json
+import requests
+from bs4 import BeautifulSoup
+import re
+import os
+
+"""
+TODO:
+- [ ] map language to country code for brave search
+- [ ] rename repo and widget to web_search
+"""
 
 
 class Filters(BaseModel):
@@ -19,29 +28,92 @@ def settings_model():
 @hook(priority=5)
 def before_cat_reads_message(user_message_json: dict, cat) -> dict:
     if "prompt_settings" in user_message_json:
-        cat.working_memory["search"] = user_message_json["prompt_settings"].get("search", [])
-        cat.working_memory["language"] = user_message_json["prompt_settings"].get("lang", "en")
+        log.info("google_search has been called")
+        cat.working_memory["search"] = user_message_json["prompt_settings"].get(
+            "search", []
+        )
+        cat.working_memory["language"] = user_message_json["prompt_settings"].get(
+            "lang", "en"
+        )
     return user_message_json
 
 
 @hook
 def agent_fast_reply(fast_reply, cat):
+    log.info("Running google_search plugin")
     language = cat.working_memory["language"]
-    search_urls = cat.working_memory["search"]
+    cat_search = cat.working_memory["search"]
+
+    search_urls = []
+    if type(cat_search) is list:
+        search_urls = cat_search
+    elif type(cat_search) is dict:
+        search_urls = list(cat.working_memory["search"].values())
+    else:
+        log.error(f"Invalid type of cat_search: {type(cat_search)}")
+
+    log.info(f"search_urls: {search_urls}")
     if not search_urls:
+        log.info("No search URLs provided, skipping search")
         return fast_reply
 
     message = cat.working_memory["user_message_json"]["text"]
+
+    api_key = os.getenv("BRAVE_API_KEY", None)
+    if not api_key:
+        log.error("Missing Brave API key for google_search plugin")
+        return fast_reply
+
+    service_url = "https://api.search.brave.com/res/v1/web/search"
+
     search_query = ""
     for url in search_urls:
         search_query += f"site:{url} OR " if url != search_urls[-1] else f"site:{url}"
+
+    log.info(f"Constructed search query with filters: {search_query}")
+
+    # Request headers
+    headers = {
+        "Accept": "application/json",
+        "Accept-Encoding": "gzip",
+        "X-Subscription-Token": api_key,
+    }
+
+    params = {
+        "q": f"{message} {search_query}",
+        "count": 5,
+        "country": "it",
+    }
+
     search_results = []
-    for result in search(f"{message} {search_query}", advanced=True, lang=language, num_results=4):
-        search_results.append({
-            "href": result.url,
-            "title": result.title,
-            "body": result.description,
-        })
+    try:
+        response = requests.get(service_url, params=params, headers=headers)
+        log.info(f"Search API response status: {response.status_code}")
+        if response.status_code == 200:
+            data = response.json()
+            log.info(f"Found {len(data['web']['results'])} search results")
+            for result in data["web"]["results"]:
+                body = (
+                    BeautifulSoup(result["description"], "html.parser")
+                    .get_text()
+                    .strip()
+                )
+
+                if body and not body[-1] in ".!?…":
+                    body += "..."
+
+                search_results.append(
+                    {
+                        "href": result["url"],
+                        "title": result["title"],
+                        "body": body,
+                    }
+                )
+        else:
+            log.error(f"Error in Brave Search API: Status {response.status_code}")
+    except Exception as e:
+        log.error(f"Exception during search request: {str(e)}")
+        return fast_reply
 
     fast_reply["output"] = json.dumps(search_results)
     return fast_reply

@@ -1,10 +1,10 @@
 {
-    "name": "Google Search",
+    "name": "Web Search",
     "version": "0.0.1",
-    "description": "Description of google_search.",
+    "description": "Description of web_search.",
     "author_name": "Me",
     "author_url": "https://mywebsite.me",
-    "plugin_url": "https://github.com/my_name/google_search",
+    "plugin_url": "https://github.com/my_name/websearch",
     "tags": "cat, template, example",
-    "thumb": "https://raw.githubusercontent.com/my_repo_path/google_search.png"
+    "thumb": "https://raw.githubusercontent.com/my_repo_path/web_search.png"
 }
