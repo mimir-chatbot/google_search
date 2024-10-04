@@ -52,7 +52,7 @@ def agent_fast_reply(fast_reply, cat):
     response = requests.get(service_url, params=params)
     if response.status_code == 200:
         data = response.json()
-        for result in data["organic_data"]:
+        for result in data["organic_results"]:
             search_results.append({
                     "href": result["link"],
                     "title": result["title"],
