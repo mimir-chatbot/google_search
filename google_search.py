@@ -45,10 +45,12 @@ def agent_fast_reply(fast_reply, cat):
     cat_search = cat.working_memory["search"]
 
     search_urls = []
-    if type(cat_search) is not dict:
+    if type(cat_search) is list:
         search_urls = cat_search
     elif type(cat_search) is dict:
         search_urls = list(cat.working_memory["search"].values())
+    else:
+        log.error(f"Invalid type of cat_search: {type(cat_search)}")
 
     print(f"search_urls: {search_urls}")
     if not search_urls:
