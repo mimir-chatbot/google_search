@@ -12,6 +12,7 @@ import re
 TODO:
 - [ ] map language to country code for brave search
 - [ ] rename repo and widget to web_search
+- [ ] move api_key to environment variable
 """
 
 
