@@ -40,7 +40,7 @@ def before_cat_reads_message(user_message_json: dict, cat) -> dict:
 
 @hook
 def agent_fast_reply(fast_reply, cat):
-    log.info("Running Brave Search plugin")
+    log.info("Running google_search plugin")
     language = cat.working_memory["language"]
     cat_search = cat.working_memory["search"]
 
@@ -59,9 +59,9 @@ def agent_fast_reply(fast_reply, cat):
 
     message = cat.working_memory["user_message_json"]["text"]
 
-    api_key = os.getenv("BRAVE_API_KEY")
+    api_key = os.getenv("BRAVE_API_KEY", None)
     if not api_key:
-        log.error("Missing API key for Brave Search")
+        log.error("Missing Brave API key for google_search plugin")
         return fast_reply
 
     service_url = "https://api.search.brave.com/res/v1/web/search"
@@ -92,14 +92,13 @@ def agent_fast_reply(fast_reply, cat):
         if response.status_code == 200:
             data = response.json()
             log.info(f"Found {len(data['web']['results'])} search results")
-            # log.info(f"data: {data}")
             for result in data["web"]["results"]:
                 body = (
                     BeautifulSoup(result["description"], "html.parser")
                     .get_text()
                     .strip()
                 )
-                # Add ellipsis if the sentence doesn't end with proper punctuation
+
                 if body and not body[-1] in ".!?…":
                     body += "..."
 
