@@ -6,13 +6,12 @@ import json
 import requests
 from bs4 import BeautifulSoup
 import re
-
+import os
 
 """
 TODO:
 - [ ] map language to country code for brave search
 - [ ] rename repo and widget to web_search
-- [ ] move api_key to environment variable
 """
 
 
@@ -53,13 +52,18 @@ def agent_fast_reply(fast_reply, cat):
     else:
         log.error(f"Invalid type of cat_search: {type(cat_search)}")
 
-    print(f"search_urls: {search_urls}")
+    log.info(f"search_urls: {search_urls}")
     if not search_urls:
         log.info("No search URLs provided, skipping search")
         return fast_reply
 
     message = cat.working_memory["user_message_json"]["text"]
-    api_key = "BSAxTw3NOXYr4t1PqC2bhLVpJ_cqHbu"
+
+    api_key = os.getenv("BRAVE_API_KEY")
+    if not api_key:
+        log.error("Missing API key for Brave Search")
+        return fast_reply
+
     service_url = "https://api.search.brave.com/res/v1/web/search"
 
     search_query = ""
