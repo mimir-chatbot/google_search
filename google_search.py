@@ -28,7 +28,7 @@ def settings_model():
 @hook(priority=5)
 def before_cat_reads_message(user_message_json: dict, cat) -> dict:
     if "prompt_settings" in user_message_json:
-        print("google_search has been called")
+        log.info("google_search has been called")
         cat.working_memory["search"] = user_message_json["prompt_settings"].get(
             "search", []
         )
